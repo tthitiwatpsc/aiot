@@ -1,59 +1,44 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<title>ทดสอบโมเดล Teachable Machine</title>
+  <meta charset="UTF-8">
+  <title>Teachable Machine</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
 
-<h1>ทดสอบโมเดล Teachable Machine</h1>
+  <div id="webcam-container"></div>
+  <div id="predictions"></div>
 
-<div id="webcam-container"></div>
+  <script>
+    const URL = "https://teachablemachine.withgoogle.com/models/wJvr5MueKZ/";
+    let model, webcam;
 
-<div id="predictions"></div>
+    // 1. โหลดโมเดล (เมื่อโหลดเสร็จแล้วค่อยทำขั้นตอนถัดไปใน .then)
+    tmImage.load(URL + "model.json", URL + "metadata.json").then(function (loadedModel) {
+      model = loadedModel;
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-<script>
-  // ลิงก์โมเดลที่เทรนไว้ใน Teachable Machine
-  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/wJvr5MueKZ/";
+      // 2. ตั้งค่ากล้อง
+      webcam = new tmImage.Webcam(320, 240, true);
+      webcam.setup().then(function () {
+        webcam.play();
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
 
-  let model, webcam;
-
-  // โหลดโมเดลและเปิดกล้องทันทีที่หน้าเว็บพร้อม
-  async function init() {
-    const modelURL = MODEL_URL + "model.json";
-    const metadataURL = MODEL_URL + "metadata.json";
-    model = await tmImage.load(modelURL, metadataURL);
-
-    webcam = new tmImage.Webcam(320, 240, true);
-    await webcam.setup();
-    await webcam.play();
-    document.getElementById("webcam-container").appendChild(webcam.canvas);
-
-    window.requestAnimationFrame(loop);
-  }
-
-  // วนอ่านภาพจากกล้องทุกเฟรมแล้วส่งไปทำนาย
-  async function loop() {
-    webcam.update();
-    await predict();
-    window.requestAnimationFrame(loop);
-  }
-
-  async function predict() {
-    const prediction = await model.predict(webcam.canvas);
-
-    // แสดงเปอร์เซ็นต์ความมั่นใจของแต่ละคลาส
-    let html = "";
-    prediction.forEach(function (p) {
-      html += p.className + ": " + Math.round(p.probability * 100) + "%<br>";
+        // 3. สั่งให้ทำงานฟังก์ชัน loop ทุกๆ 0.1 วินาที (100 มิลลิวินาที)
+        setInterval(loop, 100);
+      });
     });
-    document.getElementById("predictions").innerHTML = html;
-  }
 
-  init();
-</script>
-
-</body>
-</html>
+    // ฟังก์ชันทำนายภาพปกติ ไม่ต้องมี async/await
+    function loop() {
+      webcam.update();
+      model.predict(webcam.canvas).then(function (prediction) {
+        let html = "";
+        for (let p of prediction) {
+          html += p.className + ": " + Math.round(p.probability * 100) + "%<br>";
+        }
+        document.getElementById("predictions").innerHTML = html;
+      });
+    }
+  </script>
