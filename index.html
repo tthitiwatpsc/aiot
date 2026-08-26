@@ -1,44 +1,59 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Teachable Machine</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <title>โปรเจกต์ AI ของฉัน</title>
 </head>
 <body>
 
-  <div id="webcam-container"></div>
-  <div id="predictions"></div>
+    <h1>โปรแกรมแยกแยะรูปภาพด้วย AI</h1>
 
-  <script>
-    const URL = "https://teachablemachine.withgoogle.com/models/wJvr5MueKZ/";
-    let model, webcam;
+    <!-- 1. แสดงกล้อง -->
+    <div id="webcam-container"></div>
+    <br>
+    
+    <!-- 2. แสดงผลลัพธ์ -->
+    <div id="label-container" style="font-size: 20px; font-weight: bold;"></div>
 
-    // 1. โหลดโมเดล (เมื่อโหลดเสร็จแล้วค่อยทำขั้นตอนถัดไปใน .then)
-    tmImage.load(URL + "model.json", URL + "metadata.json").then(function (loadedModel) {
-      model = loadedModel;
+    <!-- 3. โหลดเครื่องมือ AI (TensorFlow.js & Teachable Machine Library) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-      // 2. ตั้งค่ากล้อง
-      webcam = new tmImage.Webcam(320, 240, true);
-      webcam.setup().then(function () {
-        webcam.play();
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
+    <script>
+        let model, webcam;
 
-        // 3. สั่งให้ทำงานฟังก์ชัน loop ทุกๆ 0.1 วินาที (100 มิลลิวินาที)
-        setInterval(loop, 100);
-      });
-    });
+        async function startAI() {
+            // 4. โหลดโมเดล AI (เปลี่ยน URL เป็นลิงก์โมเดลของนักเรียน)
+            const url = "https://teachablemachine.withgoogle.com/models/wJvr5MueKZ/";
+            model = await tmImage.load(url + "model.json", url + "metadata.json");
 
-    // ฟังก์ชันทำนายภาพปกติ ไม่ต้องมี async/await
-    function loop() {
-      webcam.update();
-      model.predict(webcam.canvas).then(function (prediction) {
-        let html = "";
-        for (let p of prediction) {
-          html += p.className + ": " + Math.round(p.probability * 100) + "%<br>";
+            // 5. ตั้งค่าและเปิดกล้อง (ขนาดกว้าง 250px, สูง 250px, พลิกหน้ากล้อง)
+            webcam = new tmImage.Webcam(250, 250, true);
+            await webcam.setup();
+            await webcam.play();
+
+            // 6. เอาภาพจากกล้องไปแสดงบนหน้าเว็บ
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+            // เริ่มคำนวณผลลัพธ์
+            loop();
         }
-        document.getElementById("predictions").innerHTML = html;
-      });
-    }
-  </script>
+
+        // 7. สั่งให้ทำงานซ้ำไปเรื่อยๆ (Loop ทำนายผลทุกเฟรมภาพ)
+        async function loop() {
+            webcam.update();
+            const prediction = await model.predict(webcam.canvas);
+
+            // ดึงชื่อคลาสแรกและเปอร์เซ็นต์มาแสดงผล
+            let name = prediction[0].className;
+            let percent = Math.round(prediction[0].probability * 100);
+            document.getElementById("label-container").innerHTML = "AI มองเห็น: " + name + " (" + percent + "%)";
+
+            window.requestAnimationFrame(loop);
+        }
+
+        // 8. สั่งให้เริ่มทำงานทันทีที่เปิดเว็บ
+        window.onload = startAI;
+    </script>
+
+</body>
+</html>
